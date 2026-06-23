@@ -1,4 +1,5 @@
-import { Product } from './database.js';
+import { Product, User } from './database.js';
+import bcrypt from 'bcryptjs';
 
 const initialProducts = [
   {
@@ -189,11 +190,31 @@ export const seedProducts = async () => {
       summary: prod.summary,
       description: prod.description,
       benefits: prod.benefits,
-      usage: prod.usage
+      usage: prod.usage,
+      stock: 50 // Stock initial par défaut
     }));
     
     await Product.insertMany(productsToSeed);
     console.log('Catalogue Dynace Global inséré dans MongoDB avec succès.');
+
+    // Seeding de l'utilisateur Administrateur par défaut
+    const adminEmail = 'admin@dynace.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('admin12345', 10);
+      const newAdmin = new User({
+        first_name: 'Admin',
+        last_name: 'Dynace',
+        email: adminEmail,
+        password: hashedPassword,
+        address: 'Boutique Dynace Global',
+        postal_code: '75001',
+        city: 'Paris',
+        is_admin: true
+      });
+      await newAdmin.save();
+      console.log('✅ Utilisateur Administrateur par défaut créé : admin@dynace.com / admin12345');
+    }
   } catch (err) {
     console.error('Erreur lors du seeding de la base de données MongoDB :', err.message);
   }

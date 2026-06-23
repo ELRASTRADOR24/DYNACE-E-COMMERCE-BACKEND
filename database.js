@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   address: { type: String, required: true },
   postal_code: { type: String, required: true },
-  city: { type: String, required: true }
+  city: { type: String, required: true },
+  is_admin: { type: Boolean, default: false }
 });
 
 export const User = mongoose.model('User', userSchema);
@@ -38,7 +39,8 @@ const productSchema = new mongoose.Schema({
   summary: { type: String, required: true },
   description: { type: String, required: true },
   benefits: [{ type: String }],
-  usage: { type: String, required: true }
+  usage: { type: String, required: true },
+  stock: { type: Number, default: 50 }
 });
 
 export const Product = mongoose.model('Product', productSchema);
@@ -57,6 +59,7 @@ const orderSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true },
   shipping: { type: Number, required: true },
   total: { type: Number, required: true },
+  status: { type: String, default: 'Payé' }, // 'Payé', 'En préparation', 'Expédié'
   created_at: { type: Date, default: Date.now }
 });
 
