@@ -826,25 +826,36 @@ app.put('/api/admin/orders/:id/status', authenticateToken, verifyAdmin, async (r
   }
 });
 
-// Authorize a user for test payments without Stripe
-app.post('/api/admin/users/authorize-test-payment', authenticateToken, verifyAdmin, async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: "L'adresse e-mail est obligatoire." });
+// GET all registered users for admin (excluding passwords)
+app.get('/api/admin/users', authenticateToken, verifyAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, '-password').sort({ first_name: 1 });
+    res.json(users);
+  } catch (err) {
+    console.error('Erreur lecture utilisateurs admin :', err.message);
+    res.status(500).json({ error: 'Erreur lors du chargement des utilisateurs.' });
+  }
+});
+
+// Toggle allow_test_payment permission for a user
+app.put('/api/admin/users/:id/toggle-test-payment', authenticateToken, verifyAdmin, async (req, res) => {
+  const { allowTestPayment } = req.body;
+  if (allowTestPayment === undefined) {
+    return res.status(400).json({ error: 'Statut de permission manquant.' });
   }
   try {
-    const user = await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
-      { allow_test_payment: true },
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { allow_test_payment: allowTestPayment },
       { new: true }
     );
     if (!user) {
-      return res.status(404).json({ error: "Aucun utilisateur trouvé avec cette adresse e-mail." });
+      return res.status(404).json({ error: 'Utilisateur non trouvé.' });
     }
-    res.json({ success: true, message: `L'utilisateur ${user.email} est désormais autorisé à effectuer des paiements de test.` });
+    res.json({ success: true, user });
   } catch (err) {
-    console.error("Erreur d'autorisation paiement test :", err.message);
-    res.status(500).json({ error: "Erreur serveur lors de l'autorisation de l'utilisateur." });
+    console.error('Erreur bascule permission test admin :', err.message);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour des permissions.' });
   }
 });
 
