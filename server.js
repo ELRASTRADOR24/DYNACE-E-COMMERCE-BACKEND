@@ -202,7 +202,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       address: user.address,
       postalCode: user.postal_code,
       city: user.city,
-      isAdmin: user.is_admin || false
+      isAdmin: user.is_admin || false,
+      allowTestPayment: user.allow_test_payment || false
     });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la récupération du profil.' });
@@ -596,6 +597,97 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
   }
 });
 
+// Create Test Order (Bypass Stripe for authorized test users)
+app.post('/api/payment/create-test-order', authenticateToken, async (req, res) => {
+  const { items, email, firstName, lastName, address, postalCode, city } = req.body;
+
+  if (!items || items.length === 0 || !email) {
+    return res.status(400).json({ error: 'Panier ou email manquant.' });
+  }
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user || !user.allow_test_payment) {
+      return res.status(403).json({ error: "Vous n'êtes pas autorisé à utiliser le paiement de test." });
+    }
+
+    let backendSubtotal = 0;
+    const finalItems = [];
+
+    for (const item of items) {
+      const dbProduct = await Product.findById(item.id);
+      if (!dbProduct) {
+        return res.status(404).json({ error: `Produit ${item.name || item.id} non trouvé.` });
+      }
+
+      if (dbProduct.stock < item.quantity) {
+        return res.status(400).json({ error: `Stock insuffisant pour ${dbProduct.name}. (En stock: ${dbProduct.stock})` });
+      }
+
+      backendSubtotal += dbProduct.price * item.quantity;
+      finalItems.push({
+        id: dbProduct._id,
+        name: dbProduct.name,
+        price: dbProduct.price,
+        quantity: item.quantity
+      });
+    }
+
+    let threshold = 60;
+    let cost = 6.90;
+    const shippingSetting = await Setting.findOne({ key: 'shipping' });
+    if (shippingSetting && shippingSetting.value) {
+      threshold = shippingSetting.value.threshold;
+      cost = shippingSetting.value.cost;
+    }
+
+    const shippingCost = backendSubtotal >= threshold ? 0 : cost;
+    const totalAmount = backendSubtotal + shippingCost;
+    const orderNumber = `TEST-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newOrder = new Order({
+      order_number: orderNumber,
+      user_id: user._id,
+      first_name: firstName,
+      last_name: lastName,
+      email: email.toLowerCase(),
+      address,
+      postal_code: postalCode,
+      city,
+      items: finalItems,
+      subtotal: backendSubtotal,
+      shipping: shippingCost,
+      total: totalAmount,
+      status: 'Payé'
+    });
+
+    await newOrder.save();
+
+    for (const item of finalItems) {
+      try {
+        await Product.findByIdAndUpdate(item.id, { $inc: { stock: -item.quantity } });
+      } catch (err) {
+        console.error(`Erreur mise à jour stock test pour ${item.id} :`, err.message);
+      }
+    }
+
+    await sendOrderNotificationEmail({
+      orderId: orderNumber,
+      user: { firstName, lastName, email: user.email },
+      items: finalItems,
+      totalAmount,
+      shippingAddress: { fullName: `${firstName} ${lastName}`, address, postalCode, city, country: 'France', phone: '' }
+    });
+
+    await sendCustomerOrderConfirmationEmail(newOrder);
+
+    res.status(201).json({ success: true, orderNumber });
+  } catch (err) {
+    console.error('Erreur creation commande test :', err.message);
+    res.status(500).json({ error: 'Erreur lors de la création de la commande de test.' });
+  }
+});
+
 // 2. Confirm Order (Verification of Stripe Session)
 app.post('/api/payment/confirm-order', async (req, res) => {
   const { sessionId } = req.body;
@@ -731,6 +823,28 @@ app.put('/api/admin/orders/:id/status', authenticateToken, verifyAdmin, async (r
   } catch (err) {
     console.error('Erreur mise à jour statut commande :', err.message);
     res.status(500).json({ error: 'Erreur lors de la mise à jour du statut.' });
+  }
+});
+
+// Authorize a user for test payments without Stripe
+app.post('/api/admin/users/authorize-test-payment', authenticateToken, verifyAdmin, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "L'adresse e-mail est obligatoire." });
+  }
+  try {
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { allow_test_payment: true },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: "Aucun utilisateur trouvé avec cette adresse e-mail." });
+    }
+    res.json({ success: true, message: `L'utilisateur ${user.email} est désormais autorisé à effectuer des paiements de test.` });
+  } catch (err) {
+    console.error("Erreur d'autorisation paiement test :", err.message);
+    res.status(500).json({ error: "Erreur serveur lors de l'autorisation de l'utilisateur." });
   }
 });
 

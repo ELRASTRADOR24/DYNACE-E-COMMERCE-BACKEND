@@ -23,7 +23,8 @@ const userSchema = new mongoose.Schema({
   address: { type: String, required: true },
   postal_code: { type: String, required: true },
   city: { type: String, required: true },
-  is_admin: { type: Boolean, default: false }
+  is_admin: { type: Boolean, default: false },
+  allow_test_payment: { type: Boolean, default: false }
 });
 
 export const User = mongoose.model('User', userSchema);
