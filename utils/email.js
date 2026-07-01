@@ -130,55 +130,127 @@ export const sendCustomerOrderConfirmationEmail = async (order) => {
   const mailOptions = {
     from: `"Dynace Global" <${process.env.EMAIL_USER}>`,
     to: order.email,
-    subject: `Confirmation de votre commande ${order.order_number} - Dynace Global`,
+    subject: `Commande confirmée : ${order.order_number} - Dynace Global`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="https://dynace-shop.vercel.app/images/logo.svg" alt="Dynace Global" style="height: 60px; margin-bottom: 15px;" />
-          <h2 style="color: #153A89; margin: 0;">Merci d'avoir acheté chez Dynace Global, votre colis sera envoyé sous peu</h2>
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+          .email-wrapper { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+          .header { background-color: #153A89; padding: 40px 20px; text-align: center; }
+          .header img { height: 45px; margin-bottom: 20px; }
+          .header h1 { color: #ffffff; font-size: 24px; font-weight: 600; margin: 0; letter-spacing: 0.5px; }
+          .content { padding: 40px 30px; color: #334155; }
+          .greeting { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #1e293b; }
+          .intro-text { font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 30px; }
+          
+          .order-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; margin-bottom: 30px; }
+          .order-card-header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; }
+          .order-number { font-size: 16px; font-weight: 700; color: #153A89; }
+          
+          .order-items { width: 100%; border-collapse: collapse; }
+          .order-items th { font-size: 12px; text-transform: uppercase; color: #94a3b8; text-align: left; padding-bottom: 10px; }
+          .order-items td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 15px; }
+          .item-name { font-weight: 600; color: #334155; }
+          .item-qty { color: #64748b; font-size: 14px; text-align: center; }
+          .item-price { text-align: right; font-weight: 500; }
+          
+          .totals { margin-top: 20px; width: 100%; text-align: right; }
+          .totals-row { padding: 5px 0; font-size: 14px; color: #64748b; }
+          .grand-total { font-size: 18px; font-weight: 700; color: #153A89; padding-top: 10px; margin-top: 10px; border-top: 2px solid #e2e8f0; }
+          
+          .shipping-box { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-top: 20px; }
+          .shipping-title { font-size: 13px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.5px; }
+          .shipping-address { font-size: 15px; line-height: 1.5; color: #475569; }
+          
+          .cta-container { text-align: center; margin: 40px 0 20px; }
+          .cta-button { display: inline-block; background-color: #153A89; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 15px 35px; border-radius: 30px; letter-spacing: 0.5px; }
+          
+          .footer { text-align: center; padding: 30px; background-color: #f1f5f9; font-size: 13px; color: #94a3b8; line-height: 1.5; }
+          .footer a { color: #153A89; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          
+          <!-- Header -->
+          <div class="header">
+            <img src="https://dynace-shop.vercel.app/images/logo.svg" alt="Dynace Global Logo" />
+            <h1>Merci d'avoir acheté chez Dynace Global</h1>
+          </div>
+          
+          <!-- Content -->
+          <div class="content">
+            <div class="greeting">Bonjour ${order.first_name},</div>
+            <div class="intro-text">
+              Nous sommes ravis de vous confirmer que votre paiement a bien été reçu.<br/>
+              <strong>Votre colis sera préparé et expédié sous peu.</strong> Nos équipes y accordent le plus grand soin.
+            </div>
+            
+            <!-- Order Details -->
+            <div class="order-card">
+              <div class="order-card-header">
+                <span class="order-number">Commande n° ${order.order_number}</span>
+              </div>
+              
+              <table class="order-items">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th style="text-align: center;">Qté</th>
+                    <th style="text-align: right;">Prix</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${order.items.map(item => `
+                    <tr>
+                      <td class="item-name">${item.name}</td>
+                      <td class="item-qty">x${item.quantity}</td>
+                      <td class="item-price">${item.price.toFixed(2)} €</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              
+              <div class="totals">
+                <div class="totals-row">Sous-total : ${order.subtotal.toFixed(2)} €</div>
+                <div class="totals-row">Frais de livraison : ${order.shipping === 0 ? 'Offerts' : `${order.shipping.toFixed(2)} €`}</div>
+                <div class="grand-total">Total payé : ${order.total.toFixed(2)} €</div>
+              </div>
+            </div>
+            
+            <!-- Shipping Info -->
+            <div class="shipping-box">
+              <div class="shipping-title">Adresse de Livraison</div>
+              <div class="shipping-address">
+                <strong>${order.first_name} ${order.last_name}</strong><br/>
+                ${order.address}<br/>
+                ${order.postal_code} ${order.city}
+              </div>
+            </div>
+            
+            <!-- Action Button -->
+            <div class="cta-container">
+              <a href="https://dynace-shop.vercel.app/track?order=${order.order_number}&email=${encodeURIComponent(order.email)}" class="cta-button">
+                Suivre ma commande en temps réel
+              </a>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div class="footer">
+            <p>
+              Ceci est un e-mail automatique, merci de ne pas y répondre directement.<br/>
+              Pour toute question, contactez notre support client via la page <a href="https://dynace-shop.vercel.app/contact">Contact</a> de notre site.
+            </p>
+            <p>&copy; ${new Date().getFullYear()} Dynace Global. Tous droits réservés.</p>
+          </div>
+          
         </div>
-        <p>Bonjour <strong>${order.first_name} ${order.last_name}</strong>,</p>
-        <p>Votre paiement a été validé avec succès. Voici le récapitulatif de votre commande <strong>${order.order_number}</strong> :</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-          <thead>
-            <tr style="background-color: #f8fafc;">
-              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Produit</th>
-              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Quantité</th>
-              <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Prix</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-        
-        <div style="text-align: right; font-size: 1.1rem; margin-top: 20px;">
-          <p>Sous-total : ${order.subtotal.toFixed(2)} €</p>
-          <p>Livraison : ${order.shipping === 0 ? 'Gratuit' : `${order.shipping.toFixed(2)} €`}</p>
-          <p style="font-size: 1.3rem; color: #153A89; font-weight: bold;">Total : ${order.total.toFixed(2)} €</p>
-        </div>
-        
-        <div style="margin-top: 30px; padding: 15px; background-color: #f1f5f9; border-radius: 6px;">
-          <h4 style="margin-top: 0; color: #153A89;">Adresse de livraison :</h4>
-          <p style="margin-bottom: 0; color: #475569;">
-            ${order.first_name} ${order.last_name}<br/>
-            ${order.address}<br/>
-            ${order.postal_code} ${order.city}
-          </p>
-        </div>
-        
-        <div style="margin-top: 30px; text-align: center;">
-          <a href="https://dynace-shop.vercel.app/track?order=${order.order_number}&email=${encodeURIComponent(order.email)}" 
-             style="display: inline-block; padding: 12px 24px; background-color: #153A89; color: white; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 1.1rem;">
-             Suivre ma commande
-          </a>
-        </div>
-        
-        <p style="margin-top: 30px; font-size: 0.9rem; color: #94a3b8; text-align: center;">
-          Cet e-mail a été envoyé automatiquement. Pour toute question, contactez notre support.
-        </p>
-      </div>
+      </body>
+      </html>
     `
   };
 
