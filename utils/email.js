@@ -225,23 +225,77 @@ export const sendOrderNotificationEmail = async ({ orderId, user, items, totalAm
               </div>
             </div>
             
-            <!-- Colissimo link -->
-            <a href="https://www.laposte.fr/colissimo-en-ligne/votre-colis" target="_blank" class="colissimo-btn">
-              🚚 Créer l'étiquette sur Colissimo en ligne
-            </a>
-            
-            <!-- Copy-paste block for Colissimo -->
-            <div style="margin-top: 25px;">
-              <div class="section-title">Informations à copier-coller pour Colissimo</div>
-              <pre style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; color: #334155; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word;">
-Prénom Nom : ${shippingAddress.fullName}
-Adresse    : ${shippingAddress.address}
-Code Postal: ${shippingAddress.postalCode}
-Ville      : ${shippingAddress.city}
-Pays       : ${shippingAddress.country || 'France'}
-Téléphone  : ${shippingAddress.phone || 'N/A'}
-Email      : ${user.email}
-              </pre>
+            <!-- ===== ÉTAPES POUR ENVOYER LE COLIS ===== -->
+            <div style="margin-top: 30px; background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%); border: 2px solid #153A89; border-radius: 14px; padding: 25px; ">
+              <h3 style="font-size: 17px; color: #153A89; margin: 0 0 18px 0; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; text-align: center;">🚚 Envoyer le colis en 3 étapes</h3>
+              
+              <!-- Étape 1 -->
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                  <span style="background-color: #153A89; color: #fff; font-size: 14px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: inline-block; text-align: center; line-height: 28px; margin-right: 10px;">1</span>
+                  <strong style="font-size: 15px; color: #1e293b;">Cliquez sur le lien ci-dessous pour aller sur Colissimo</strong>
+                </div>
+                <div style="text-align: center; margin: 10px 0;">
+                  <a href="https://www.laposte.fr/colissimo-en-ligne/expedier" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #00468b 0%, #153A89 100%); color: #ffffff; padding: 14px 30px; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,70,139,0.3);">
+                    📦 Ouvrir Colissimo en ligne →
+                  </a>
+                </div>
+                <div style="text-align: center; margin-top: 8px;">
+                  <a href="https://www.mondialrelay.fr" target="_blank" style="color: #64748b; font-size: 12px; text-decoration: underline;">ou utiliser Mondial Relay</a>
+                </div>
+              </div>
+              
+              <!-- Étape 2 -->
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                  <span style="background-color: #153A89; color: #fff; font-size: 14px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: inline-block; text-align: center; line-height: 28px; margin-right: 10px;">2</span>
+                  <strong style="font-size: 15px; color: #1e293b;">Copiez-collez chaque champ dans le formulaire Colissimo</strong>
+                </div>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; width: 120px; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Prénom</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.fullName.split(' ')[0] || ''}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Nom</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.fullName.split(' ').slice(1).join(' ') || ''}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Adresse</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.address}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Code Postal</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.postalCode}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Ville</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.city}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Pays</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.country || 'France'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Téléphone</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${shippingAddress.phone || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 12px; background-color: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; border: 1px solid #e2e8f0; letter-spacing: 0.5px;">Email</td>
+                    <td style="padding: 8px 12px; background-color: #ffffff; font-size: 15px; color: #1e293b; font-weight: 600; border: 1px solid #e2e8f0; font-family: 'Courier New', monospace;">${user.email}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <!-- Étape 3 -->
+              <div>
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <span style="background-color: #153A89; color: #fff; font-size: 14px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: inline-block; text-align: center; line-height: 28px; margin-right: 10px;">3</span>
+                  <strong style="font-size: 15px; color: #1e293b;">Payez l'étiquette, imprimez-la et collez-la sur le colis</strong>
+                </div>
+                <p style="font-size: 13px; color: #64748b; margin: 0; padding-left: 38px;">Puis mettez à jour le statut dans le <a href="https://dynace-shop.vercel.app/admin" style="color: #153A89; font-weight: 600; text-decoration: none;">Tableau de bord Admin</a> → "Expédié"</p>
+              </div>
             </div>
           </div>
           
