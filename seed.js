@@ -176,32 +176,26 @@ const initialProducts = [
 
 export const seedProducts = async () => {
   try {
-    const count = await Product.countDocuments();
-    if (count > 0) {
-      console.log('Catalogue déjà présent dans MongoDB, on ignore le seeding initial.');
-      return;
+    console.log('Synchronisation du catalogue des produits (MongoDB)...');
+    for (const prod of initialProducts) {
+      await Product.findByIdAndUpdate(
+        prod.id,
+        {
+          name: prod.name,
+          price: prod.price,
+          category: prod.category,
+          image: prod.image,
+          images: prod.images,
+          summary: prod.summary,
+          description: prod.description,
+          benefits: prod.benefits,
+          usage: prod.usage,
+          $setOnInsert: { stock: 50 }
+        },
+        { upsert: true, new: true }
+      );
     }
-
-    // Vider la collection products dans MongoDB au cas où
-    await Product.deleteMany({});
-    console.log('Remplissage de la table products (MongoDB) avec le catalogue Dynace Global...');
-    
-    const productsToSeed = initialProducts.map(prod => ({
-      _id: prod.id, // ID textuel customisé mappé sur _id
-      name: prod.name,
-      price: prod.price,
-      category: prod.category,
-      image: prod.image,
-      images: prod.images,
-      summary: prod.summary,
-      description: prod.description,
-      benefits: prod.benefits,
-      usage: prod.usage,
-      stock: 50 // Stock initial par défaut
-    }));
-    
-    await Product.insertMany(productsToSeed);
-    console.log('✅ Catalogue Dynace Global inséré dans MongoDB avec succès.');
+    console.log('✅ Catalogue Dynace Global synchronisé avec succès.');
 
     // Seeding de l'utilisateur Administrateur par défaut
     const adminEmail = 'admin@dynace.com';
@@ -222,35 +216,37 @@ export const seedProducts = async () => {
       console.log('✅ Utilisateur Administrateur par défaut créé : admin@dynace.com / admin12345');
     }
 
-    // Seeding de quelques avis initiaux
-    const admin = await User.findOne({ email: adminEmail });
-    if (admin) {
-      await Review.deleteMany({});
-      const initialReviews = [
-        {
-          product_id: "rocenta",
-          user_id: admin._id,
-          name: "Sophie M.",
-          rating: 5,
-          comment: "Le Dynace Rocenta a complètement transformé ma forme physique. Je ressens une vitalité incroyable au quotidien et ma peau est devenue éclatante et bien plus ferme !"
-        },
-        {
-          product_id: "tripleroot",
-          user_id: admin._id,
-          name: "Lucas R.",
-          rating: 5,
-          comment: "Le Triple Root Coffee est exceptionnel. Il me donne un boost d'énergie immédiat sans les palpitations ni les crashs de l'après-midi du café classique. Le goût est délicieux !"
-        },
-        {
-          product_id: "aceguard",
-          user_id: admin._id,
-          name: "Clara D.",
-          rating: 5,
-          comment: "AceGuard a été un miracle pour ma digestion. Plus de ballonnements ni de lourdeurs après les repas, mon ventre est redevenu plat et ma flore intestinale est en pleine santé."
-        }
-      ];
-      await Review.insertMany(initialReviews);
-      console.log('✅ Avis initiaux insérés dans MongoDB avec succès.');
+    // Seeding de quelques avis initiaux si la table est vide
+    const reviewsCount = await Review.countDocuments();
+    if (reviewsCount === 0) {
+      const admin = await User.findOne({ email: adminEmail });
+      if (admin) {
+        const initialReviews = [
+          {
+            product_id: "rocenta",
+            user_id: admin._id,
+            name: "Sophie M.",
+            rating: 5,
+            comment: "Le Dynace Rocenta a complètement transformé ma forme physique. Je ressens une vitalité incroyable au quotidien et ma peau est devenue éclatante et bien plus ferme !"
+          },
+          {
+            product_id: "tripleroot",
+            user_id: admin._id,
+            name: "Lucas R.",
+            rating: 5,
+            comment: "Le Triple Root Coffee est exceptionnel. Il me donne un boost d'énergie immédiat sans les palpitations ni les crashs de l'après-midi du café classique. Le goût est délicieux !"
+          },
+          {
+            product_id: "aceguard",
+            user_id: admin._id,
+            name: "Clara D.",
+            rating: 5,
+            comment: "AceGuard a été un miracle pour ma digestion. Plus de ballonnements ni de lourdeurs après les repas, mon ventre est redevenu plat et ma flore intestinale est en pleine santé."
+          }
+        ];
+        await Review.insertMany(initialReviews);
+        console.log('✅ Avis initiaux insérés dans MongoDB avec succès.');
+      }
     }
   } catch (err) {
     console.error('Erreur lors du seeding de la base de données MongoDB :', err.message);
