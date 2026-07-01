@@ -6,7 +6,7 @@ export const connectDatabase = async () => {
     console.error("⚠️ Erreur : La variable MONGODB_URI n'est pas définie dans le fichier .env.");
   }
   try {
-    await mongoose.connect(mongoUri || "mongodb://localhost:27017/mvp");
+    await mongoose.connect(mongoUri || "mongodb://localhost:27017/dynaceGlobal");
     console.log("Connecté avec succès à MongoDB (base de données sécurisée)");
   } catch (err) {
     console.error("Erreur de connexion à MongoDB :", err.message);
@@ -64,3 +64,32 @@ const orderSchema = new mongoose.Schema({
 });
 
 export const Order = mongoose.model('Order', orderSchema);
+
+// Schéma Avis/Commentaire (Review)
+const reviewSchema = new mongoose.Schema({
+  product_id: { type: String, required: true, index: true }, // Custom string ID (ex: "rocenta")
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name: { type: String, required: true }, // User's display name (ex: "Sophie M.")
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, required: true },
+  video_url: { type: String },
+  created_at: { type: Date, default: Date.now }
+});
+
+export const Review = mongoose.model('Review', reviewSchema);
+
+// Schéma Configuration (Setting)
+const settingSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true }
+});
+
+export const Setting = mongoose.model('Setting', settingSchema);
+
+// Schéma Newsletter (Newsletter)
+const newsletterSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  created_at: { type: Date, default: Date.now }
+});
+
+export const Newsletter = mongoose.model('Newsletter', newsletterSchema);

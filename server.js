@@ -2,126 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { connectDatabase, User, Product, Order } from './database.js';
+import { connectDatabase, User, Product, Order, Review, Setting, Newsletter } from './database.js';
 import { seedProducts } from './seed.js';
 import Stripe from 'stripe';
+import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import nodemailer from 'nodemailer';
-
-// Configuration de Nodemailer pour les confirmations de commandes
-const createMailTransporter = async () => {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-  }
-  
-  // Mode développement : Ethereal Mail (compte temporaire gratuit)
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  } catch (err) {
-    console.warn("⚠️ Nodemailer: Impossible de créer un compte Ethereal de test (pas d'internet ?). Fallback sur console.log :", err.message);
-    return null;
-  }
-};
-
-const sendOrderConfirmationEmail = async (order) => {
-  const transporter = await createMailTransporter();
-  
-  const itemsText = order.items.map(item => `- ${item.name} x${item.quantity} (${item.price.toFixed(2)} €)`).join('\n');
-  const itemsHtml = order.items.map(item => `
-    <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
-      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">x${item.quantity}</td>
-      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${item.price.toFixed(2)} €</td>
-    </tr>
-  `).join('');
-
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #153A89;">Dynace Global</h2>
-        <p style="font-size: 1.1rem; color: #475569;">Merci pour votre commande !</p>
-      </div>
-      <p>Bonjour <strong>${order.first_name} ${order.last_name}</strong>,</p>
-      <p>Votre paiement a été validé avec succès. Voici le récapitulatif de votre commande <strong>${order.order_number}</strong> :</p>
-      
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <thead>
-          <tr style="background-color: #f8fafc;">
-            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Produit</th>
-            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Quantité</th>
-            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Prix</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsHtml}
-        </tbody>
-      </table>
-      
-      <div style="text-align: right; font-size: 1.1rem; margin-top: 20px;">
-        <p>Sous-total : ${order.subtotal.toFixed(2)} €</p>
-        <p>Livraison : ${order.shipping === 0 ? 'Gratuit' : '${order.shipping.toFixed(2)} €'}</p>
-        <p style="font-size: 1.3rem; color: #153A89; font-weight: bold;">Total : ${order.total.toFixed(2)} €</p>
-      </div>
-      
-      <div style="margin-top: 30px; padding: 15px; background-color: #f1f5f9; border-radius: 6px;">
-        <h4 style="margin-top: 0; color: #153A89;">Adresse de livraison :</h4>
-        <p style="margin-bottom: 0; color: #475569;">
-          ${order.first_name} ${order.last_name}<br/>
-          ${order.address}<br/>
-          ${order.postal_code} ${order.city}
-        </p>
-      </div>
-      
-      <p style="margin-top: 30px; font-size: 0.9rem; color: #94a3b8; text-align: center;">
-        Cet e-mail a été envoyé automatiquement. Pour toute question, contactez notre support.
-      </p>
-    </div>
-  `;
-
-  if (!transporter) {
-    console.log("=== EMAIL CONFIRMATION LOG (Simulé) ===");
-    console.log(`Destinataire : ${order.email}`);
-    console.log(`Sujet : Confirmation de votre commande ${order.order_number} - Dynace Global`);
-    console.log(itemsText);
-    console.log("=========================================");
-    return;
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: '"Dynace Global" <noreply@dynaceglobal.com>',
-      to: order.email,
-      subject: `Confirmation de votre commande ${order.order_number} - Dynace Global`,
-      text: `Merci pour votre commande !\n\nNuméro de commande : ${order.order_number}\n\nArticles :\n${itemsText}\n\nTotal : ${order.total.toFixed(2)} €`,
-      html: emailHtml
-    });
-    
-    console.log(`✉️ E-mail de confirmation envoyé à ${order.email}`);
-    if (nodemailer.getTestMessageUrl(info)) {
-      console.log(`🔗 Lien de prévisualisation de l'e-mail : ${nodemailer.getTestMessageUrl(info)}`);
-    }
-  } catch (err) {
-    console.error("❌ Erreur lors de l'envoi de l'e-mail de confirmation :", err.message);
-  }
-};
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { sendContactEmail, sendOrderNotificationEmail, sendCustomerOrderConfirmationEmail } from './utils/email.js';
 
 // Charge les variables d'environnement depuis le fichier .env
 try {
@@ -155,6 +45,31 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dynace_dev_jwt_secret_fallback';
 
 app.use(cors());
 app.use(express.json());
+
+// Configuration de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configuration de Multer-Storage-Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'dynace-global',
+    resource_type: 'auto', // permet les images et les vidéos
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi']
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Servir les fichiers uploadés
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Token Verification Middleware
 const authenticateToken = (req, res, next) => {
@@ -298,20 +213,29 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 // Get all products
 app.get('/api/products', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
   try {
     const rows = await Product.find({});
-    const productsList = rows.map(row => ({
-      id: row._id,
-      name: row.name,
-      price: row.price,
-      category: row.category,
-      image: row.image,
-      images: row.images || [],
-      summary: row.summary,
-      description: row.description,
-      benefits: row.benefits || [],
-      usage: row.usage,
-      stock: row.stock !== undefined ? row.stock : 50
+    const productsList = await Promise.all(rows.map(async (row) => {
+      const reviews = await Review.find({ product_id: row._id });
+      const avgRating = reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+      return {
+        id: row._id,
+        name: row.name,
+        price: row.price,
+        category: row.category,
+        image: row.image,
+        images: row.images || [],
+        summary: row.summary,
+        description: row.description,
+        benefits: row.benefits || [],
+        usage: row.usage,
+        stock: row.stock !== undefined ? row.stock : 50,
+        avgRating: Math.round(avgRating * 10) / 10,
+        reviewCount: reviews.length
+      };
     }));
     res.json(productsList);
   } catch (err) {
@@ -327,6 +251,13 @@ app.get('/api/products/:id', async (req, res) => {
     if (!row) {
       return res.status(404).json({ error: 'Produit non trouvé.' });
     }
+    const reviews = await Review.find({ product_id: row._id });
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : 0;
+
+
+
     res.json({
       id: row._id,
       name: row.name,
@@ -338,7 +269,9 @@ app.get('/api/products/:id', async (req, res) => {
       description: row.description,
       benefits: row.benefits || [],
       usage: row.usage,
-      stock: row.stock !== undefined ? row.stock : 50
+      stock: row.stock !== undefined ? row.stock : 50,
+      avgRating: Math.round(avgRating * 10) / 10,
+      reviewCount: reviews.length
     });
   } catch (err) {
     console.error('Erreur chargement produit id :', err.message);
@@ -346,44 +279,125 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// --- ORDERS ROUTES ---
+// --- REVIEWS ROUTES ---
 
-// Create Order (Public/Registered)
-app.post('/api/orders', async (req, res) => {
-  const { orderNumber, userId, firstName, lastName, email, address, postalCode, city, items, subtotal, shipping, total } = req.body;
+// Get all reviews
+app.get('/api/reviews', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  try {
+    const reviews = await Review.find({}).sort({ created_at: -1 }).limit(10);
+    res.json(reviews);
+  } catch (err) {
+    console.error('Erreur lecture avis récents :', err.message);
+    res.status(500).json({ error: 'Erreur lors de la récupération des avis.' });
+  }
+});
 
-  if (!orderNumber || !firstName || !lastName || !email || !address || !postalCode || !city || !items || !subtotal || !total) {
-    return res.status(400).json({ error: 'Données de commande incomplètes.' });
+// Get reviews for a product
+app.get('/api/products/:productId/reviews', async (req, res) => {
+  try {
+    const reviews = await Review.find({ product_id: req.params.productId }).sort({ created_at: -1 });
+    res.json(reviews);
+  } catch (err) {
+    console.error('Erreur lecture avis :', err.message);
+    res.status(500).json({ error: 'Erreur lors de la récupération des avis.' });
+  }
+});
+
+// Add a review (Authenticated)
+app.post('/api/products/:productId/reviews', authenticateToken, upload.single('video'), async (req, res) => {
+  const { rating, comment } = req.body;
+  const { productId } = req.params;
+
+  if (!rating || !comment) {
+    return res.status(400).json({ error: 'Veuillez fournir une note et un commentaire.' });
+  }
+
+  const ratingNum = parseInt(rating);
+  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    return res.status(400).json({ error: 'La note doit être comprise entre 1 et 5.' });
   }
 
   try {
-    const newOrder = new Order({
-      order_number: orderNumber,
-      user_id: userId || null,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      address,
-      postal_code: postalCode,
-      city,
-      items,
-      subtotal,
-      shipping,
-      total
-    });
-    await newOrder.save();
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé.' });
+    }
 
-    res.status(201).json({ success: true, orderNumber });
+    const displayName = `${user.first_name} ${user.last_name.charAt(0).toUpperCase()}.`;
+    
+    // Si une vidéo a été envoyée, on génère son URL d'accès (Cloudinary)
+    const videoUrl = req.file ? req.file.path : null;
+
+    const newReview = new Review({
+      product_id: productId,
+      user_id: req.userId,
+      name: displayName,
+      rating: ratingNum,
+      comment,
+      video_url: videoUrl
+    });
+
+    const saved = await newReview.save();
+    res.status(201).json(saved);
   } catch (err) {
-    console.error('Erreur création commande :', err.message);
-    res.status(500).json({ error: 'Erreur de base de données lors de la création de la commande.' });
+    console.error('Erreur enregistrement avis :', err.message);
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement de votre avis.' });
   }
 });
+
+// --- CONTACT ROUTE ---
+
+app.post('/api/contact', async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ error: 'Tous les champs sont obligatoires.' });
+  }
+
+  const success = await sendContactEmail({ name, email, subject, message });
+  if (success) {
+    res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+  } else {
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du message.' });
+  }
+});
+// --- NEWSLETTER ROUTE ---
+
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'L\'adresse e-mail est obligatoire.' });
+  }
+
+  try {
+    const existing = await Newsletter.findOne({ email });
+    if (existing) {
+      return res.status(200).json({ success: true, message: 'Déjà inscrit !' });
+    }
+    const newSubscription = new Newsletter({ email });
+    await newSubscription.save();
+    res.status(200).json({ success: true, message: 'Inscription validée.' });
+  } catch (err) {
+    console.error('Erreur inscription newsletter :', err);
+    res.status(500).json({ error: 'Erreur serveur lors de l\'inscription.' });
+  }
+});
+
+
+// --- ORDERS ROUTES ---
 
 // Get user orders (Route protégée)
 app.get('/api/orders/user', authenticateToken, async (req, res) => {
   try {
-    const rows = await Order.find({ user_id: req.userId }).sort({ created_at: -1 });
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+    const rows = await Order.find({ 
+      $or: [
+        { user_id: req.userId },
+        { email: user.email }
+      ]
+    }).sort({ created_at: -1 });
     const ordersList = rows.map(row => ({
       id: row._id,
       orderNumber: row.order_number,
@@ -397,12 +411,48 @@ app.get('/api/orders/user', authenticateToken, async (req, res) => {
       subtotal: row.subtotal,
       shipping: row.shipping,
       total: row.total,
+      status: row.status,
       createdAt: row.created_at
     }));
     res.json(ordersList);
   } catch (err) {
     console.error('Erreur lecture commandes user :', err.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des commandes.' });
+  }
+});
+
+// Track Order Public Endpoint
+app.get('/api/orders/track/:orderNumber', async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ error: 'Adresse e-mail requise pour le suivi.' });
+  }
+
+  try {
+    const order = await Order.findOne({ order_number: req.params.orderNumber });
+    if (!order) {
+      return res.status(404).json({ error: 'Commande non trouvée.' });
+    }
+
+    if (order.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(403).json({ error: 'L\'adresse e-mail ne correspond pas à cette commande.' });
+    }
+
+    res.json({
+      order_number: order.order_number,
+      status: order.status,
+      createdAt: order.created_at,
+      total: order.total,
+      email: order.email,
+      first_name: order.first_name,
+      last_name: order.last_name,
+      address: order.address,
+      postal_code: order.postal_code,
+      city: order.city
+    });
+  } catch (err) {
+    console.error('Erreur suivi commande :', err.message);
+    res.status(500).json({ error: 'Erreur lors de la récupération du suivi.' });
   }
 });
 
@@ -418,20 +468,28 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
 
   try {
     const lineItems = [];
+    let backendSubtotal = 0;
 
     // Récupérer et recalculer le prix réel des produits dans MongoDB
     for (const item of items) {
       const dbProduct = await Product.findById(item.id);
       if (!dbProduct) {
-        return res.status(404).json({ error: `Produit ${item.name} non trouvé.` });
+        return res.status(404).json({ error: `Produit ${item.name || item.id} non trouvé.` });
       }
+
+      if (dbProduct.stock < item.quantity) {
+        return res.status(400).json({ error: `Stock insuffisant pour ${dbProduct.name}. (En stock: ${dbProduct.stock})` });
+      }
+
+      const itemTotal = dbProduct.price * item.quantity;
+      backendSubtotal += itemTotal;
 
       lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
             name: dbProduct.name,
-            images: dbProduct.image ? [`http://localhost:5174${dbProduct.image}`] : [],
+            images: dbProduct.image ? [`${process.env.FRONTEND_URL || 'http://localhost:5174'}${dbProduct.image}`] : [],
             description: dbProduct.summary
           },
           unit_amount: Math.round(dbProduct.price * 100), // Stripe attend des centimes
@@ -440,9 +498,17 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
       });
     }
 
-    // Calculer les frais de livraison (ex: gratuit dès 50 €)
-    const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const shippingCost = subtotal >= 50 ? 0 : 4.90;
+    // Récupérer les paramètres de livraison depuis la base de données
+    let threshold = 60;
+    let cost = 6.90;
+    const shippingSetting = await Setting.findOne({ key: 'shipping' });
+    if (shippingSetting && shippingSetting.value) {
+      threshold = shippingSetting.value.threshold;
+      cost = shippingSetting.value.cost;
+    }
+
+    // Calculer les frais de livraison avec le sous-total du backend
+    const shippingCost = backendSubtotal >= threshold ? 0 : cost;
 
     if (shippingCost > 0) {
       lineItems.push({
@@ -466,8 +532,8 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
       mode: 'payment',
       customer_email: email,
       allow_promotion_codes: true,
-      success_url: `http://localhost:5174/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5174/?payment=cancel`,
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5174'}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5174'}/?payment=cancel`,
       metadata: {
         orderNumber,
         firstName,
@@ -476,17 +542,17 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
         address,
         postalCode,
         city,
-        subtotal: subtotal.toFixed(2),
+        subtotal: backendSubtotal.toFixed(2),
         shipping: shippingCost.toFixed(2),
-        total: (subtotal + shippingCost).toFixed(2),
-        items: JSON.stringify(items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })))
+        total: (backendSubtotal + shippingCost).toFixed(2),
+        items: JSON.stringify(items.map(i => ({ id: i.id, quantity: i.quantity }))) // Ne pas stocker le prix frontend
       }
     });
 
     res.json({ url: session.url, session_id: session.id });
   } catch (err) {
     console.error('Erreur création session Stripe :', err.message);
-    res.status(500).json({ error: 'Impossible d\'initialiser le paiement sécurisé.' });
+    res.status(500).json({ error: err.message || 'Impossible d\'initialiser le paiement sécurisé.' });
   }
 });
 
@@ -532,10 +598,21 @@ app.post('/api/payment/confirm-order', async (req, res) => {
       items: JSON.parse(items),
       subtotal: parseFloat(subtotal),
       shipping: parseFloat(shipping),
-      total: parseFloat(total)
+      total: parseFloat(total),
+      status: 'Payé'
     });
 
     await newOrder.save();
+    
+    // Notification email to admin
+    await sendOrderNotificationEmail({
+      orderId: orderNumber,
+      user: { firstName, lastName, email },
+      items: JSON.parse(items),
+      totalAmount: parseFloat(total),
+      shippingAddress: { fullName: `${firstName} ${lastName}`, address, postalCode, city, country: 'France', phone: '' }
+    });
+
     console.log(`✅ Commande confirmée et enregistrée : ${orderNumber}`);
 
     // Décrémenter le stock des produits achetés dans MongoDB
@@ -552,8 +629,8 @@ app.post('/api/payment/confirm-order', async (req, res) => {
       }
     }
 
-    // Envoi de l'e-mail de confirmation en arrière-plan
-    sendOrderConfirmationEmail(newOrder);
+    // Envoi de l'e-mail de confirmation au client
+    await sendCustomerOrderConfirmationEmail(newOrder);
 
     res.status(201).json({ success: true, orderNumber });
   } catch (err) {
@@ -606,8 +683,13 @@ app.put('/api/admin/orders/:id/status', authenticateToken, verifyAdmin, async (r
 });
 
 // Create product (Admin)
-app.post('/api/admin/products', authenticateToken, verifyAdmin, async (req, res) => {
+app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('imageFile'), async (req, res) => {
   const { id, name, price, category, image, images, summary, description, benefits, usage, stock } = req.body;
+
+  let parsedBenefits = benefits;
+  let parsedImages = images;
+  try { if (typeof benefits === 'string') parsedBenefits = JSON.parse(benefits); } catch(e) { parsedBenefits = []; }
+  try { if (typeof images === 'string') parsedImages = JSON.parse(images); } catch(e) { parsedImages = []; }
 
   if (!name || !price || !category || !summary || !description || !usage) {
     return res.status(400).json({ error: 'Champs obligatoires manquants.' });
@@ -627,16 +709,22 @@ app.post('/api/admin/products', authenticateToken, verifyAdmin, async (req, res)
       return res.status(400).json({ error: 'Un produit avec cet identifiant existe déjà.' });
     }
 
+    // Check if an image was uploaded via Cloudinary
+    let finalImageUrl = image || '';
+    if (req.file) {
+      finalImageUrl = req.file.path;
+    }
+
     const newProduct = new Product({
       _id: productId,
       name,
       price: parseFloat(price),
       category,
-      image: image || '',
-      images: images || [],
+      image: finalImageUrl,
+      images: parsedImages || [],
       summary,
       description,
-      benefits: benefits || [],
+      benefits: parsedBenefits || [],
       usage,
       stock: stock !== undefined ? parseInt(stock) : 50
     });
@@ -650,24 +738,39 @@ app.post('/api/admin/products', authenticateToken, verifyAdmin, async (req, res)
 });
 
 // Update product (Admin)
-app.put('/api/admin/products/:id', authenticateToken, verifyAdmin, async (req, res) => {
+app.put('/api/admin/products/:id', authenticateToken, verifyAdmin, upload.single('imageFile'), async (req, res) => {
   const { name, price, category, image, images, summary, description, benefits, usage, stock } = req.body;
 
   try {
+    let parsedBenefits = benefits;
+    let parsedImages = images;
+    try { if (typeof benefits === 'string') parsedBenefits = JSON.parse(benefits); } catch(e) {}
+    try { if (typeof images === 'string') parsedImages = JSON.parse(images); } catch(e) {}
+
+    let finalImageUrl = image;
+    if (req.file) {
+      finalImageUrl = req.file.path;
+    }
+
+    const updateData = {
+      name,
+      price: price !== undefined ? parseFloat(price) : undefined,
+      category,
+      images: parsedImages,
+      summary,
+      description,
+      benefits: parsedBenefits,
+      usage,
+      stock: stock !== undefined ? parseInt(stock) : undefined
+    };
+
+    if (finalImageUrl !== undefined && finalImageUrl !== '') {
+      updateData.image = finalImageUrl;
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      {
-        name,
-        price: price !== undefined ? parseFloat(price) : undefined,
-        category,
-        image,
-        images,
-        summary,
-        description,
-        benefits,
-        usage,
-        stock: stock !== undefined ? parseInt(stock) : undefined
-      },
+      updateData,
       { new: true }
     );
 
@@ -693,6 +796,45 @@ app.delete('/api/admin/products/:id', authenticateToken, verifyAdmin, async (req
   } catch (err) {
     console.error('Erreur suppression produit :', err.message);
     res.status(500).json({ error: 'Erreur lors de la suppression du produit.' });
+  }
+});
+
+// --- SETTINGS ROUTES ---
+
+// GET /api/settings/shipping (Public)
+app.get('/api/settings/shipping', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  try {
+    const setting = await Setting.findOne({ key: 'shipping' });
+    if (setting && setting.value) {
+      res.json(setting.value);
+    } else {
+      res.json({ threshold: 60, cost: 6.90 }); // Default values
+    }
+  } catch (err) {
+    console.error('Erreur lecture paramètres de livraison:', err.message);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
+// PUT /api/admin/settings/shipping (Admin)
+app.put('/api/admin/settings/shipping', authenticateToken, verifyAdmin, async (req, res) => {
+  const { threshold, cost } = req.body;
+  if (threshold === undefined || cost === undefined) {
+    return res.status(400).json({ error: 'Données manquantes (threshold, cost).' });
+  }
+  
+  try {
+    const value = { threshold: Number(threshold), cost: Number(cost) };
+    const updatedSetting = await Setting.findOneAndUpdate(
+      { key: 'shipping' },
+      { key: 'shipping', value },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, setting: updatedSetting.value });
+  } catch (err) {
+    console.error('Erreur mise à jour paramètres de livraison:', err.message);
+    res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
 

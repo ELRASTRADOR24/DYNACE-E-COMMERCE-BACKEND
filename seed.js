@@ -1,4 +1,4 @@
-import { Product, User } from './database.js';
+import { Product, User, Review } from './database.js';
 import bcrypt from 'bcryptjs';
 
 const initialProducts = [
@@ -9,15 +9,15 @@ const initialProducts = [
     category: "vitalite",
     image: "/images/rocenta.png",
     images: ["/images/rocenta.png", "/images/rocenta_2.png", "/images/rocenta_3.png"],
-    summary: "Phytothérapie cellulaire de pointe à base de cellules souches de melon de Bulgarie.",
-    description: "Dynace Rocenta est le summum de l'innovation en nutraceutique. Formulé à partir de cellules souches végétales de melon de Bulgarie de haute pureté, enrichi en coenzyme Q10, extrait d'ashwagandha et nutriments essentiels, il active le renouvellement cellulaire de l'organisme, booste le système immunitaire et combat le vieillissement.",
+    summary: "Soutien à la vitalité cellulaire — régénération, hydratation et éclat de l'intérieur.",
+    description: "Rocenta est une formule holistique de haute précision conçue pour soutenir la vitalité cellulaire au quotidien. Elle favorise l'hydratation et l'élasticité de la peau, soutient la santé des articulations et des os, favorise un meilleur repos et la relaxation, et aide à maintenir la santé des cheveux et des ongles. Une approche complète du bien-être, de la beauté et de l'équilibre intérieur.",
     benefits: [
-      "Régénération et protection cellulaire",
-      "Puissant effet antioxydant et anti-âge",
-      "Soutien du système immunitaire",
-      "Améliore la clarté mentale et la vitalité"
+      "Favorise l'hydratation et l'élasticité de la peau",
+      "Soutient la santé des articulations et des os",
+      "Favorise un meilleur repos et la relaxation",
+      "Aide à maintenir la santé des cheveux et des ongles"
     ],
-    usage: "Prendre un sachet par jour sous la langue le matin avant le petit-déjeuner."
+    usage: "Prendre un sachet par jour de préférence le matin avant le petit-déjeuner."
   },
   {
     id: "dynafuel",
@@ -26,13 +26,13 @@ const initialProducts = [
     category: "energie",
     image: "/images/dynafuel.png",
     images: ["/images/dynafuel.png", "/images/dynafuel_2.png", "/images/dynafuel_3.png"],
-    summary: "Supplément d'énergie naturelle et de vigueur pour hommes actifs.",
-    description: "Dynace Dynafuel est une formule stimulante exclusive élaborée pour optimiser l'énergie masculine, l'endurance et les performances physiques. Composé de Tongkat Ali, de racine de Maca noire et d'extraits d'herbes naturelles, il combat la fatigue physique et mentale pour une vitalité prolongée.",
+    summary: "Supplément d'énergie cellulaire et de vitalité masculine pour hommes actifs.",
+    description: "Dynafuel est une formule premium conçue pour les hommes souhaitant optimiser leur énergie cellulaire, leur endurance et leur vitalité quotidienne. Il soutient l'énergie cellulaire et l'endurance, aide à maintenir un vieillissement sain et la vitalité, soutient le bien-être immunitaire, et aide à maintenir la clarté mentale et la concentration. Idéal pour les professionnels actifs, les sportifs et les hommes de plus de 40 ans.",
     benefits: [
-      "Booste l'énergie physique et la force",
-      "Améliore l'endurance et la performance",
-      "Soutient la gestion du stress",
-      "Ingrédients naturels de première qualité"
+      "Soutient l'énergie cellulaire et l'endurance quotidienne",
+      "Aide à maintenir un vieillissement sain et la vitalité",
+      "Soutient le bien-être immunitaire",
+      "Favorise le bien-être et la clarté mentale"
     ],
     usage: "Diluer un sachet dans 100ml d'eau tiède. À consommer en milieu de journée."
   },
@@ -40,67 +40,67 @@ const initialProducts = [
     id: "urbanism",
     name: "Dynace Urbanism",
     price: 42.90,
-    category: "vitalite",
+    category: "minceur",
     image: "/images/urbanism.png",
     images: ["/images/urbanism.png", "/images/urbanism_2.png", "/images/urbanism_3.png"],
-    summary: "Solution bien-être pour l'équilibre hormonal et la sérénité féminine.",
-    description: "Dynace Urbanism est spécialement conçu pour soutenir le bien-être général de la femme moderne. Sa synergie de plantes adaptogènes et de vitamines aide à stabiliser l'humeur, réguler le système hormonal, atténuer les douleurs menstruelles et revitaliser la peau.",
+    summary: "Soutien à la gestion du poids Jour & Nuit — brûlez le jour, détoxifiez la nuit.",
+    description: "Urbanism est une solution complète en deux phases pour la gestion du poids. Le jour, elle soutient le métabolisme et les routines de combustion des graisses. La nuit, elle favorise l'équilibre intestinal, la détoxification saine et le sommeil. Elle aide également à gérer l'appétit et les fringales, et à soutenir la digestion. Une approche naturelle, en accord avec les rythmes de votre corps.",
     benefits: [
-      "Régulation naturelle de l'équilibre hormonal",
-      "Réduit l'irritabilité et le stress quotidien",
-      "Améliore la santé et la beauté de la peau",
-      "Soutient l'énergie globale féminine"
+      "Soutient le métabolisme et la combustion des graisses (jour)",
+      "Aide à gérer l'appétit et les fringales",
+      "Favorise l'équilibre intestinal et la digestion",
+      "Soutient la détoxification saine pendant le sommeil"
     ],
-    usage: "Un sachet par jour à diluer dans 150ml d'eau, de préférence le soir au coucher."
+    usage: "Un sachet Jour dilué dans 150ml d'eau le matin. Un sachet Nuit le soir au coucher."
   },
   {
     id: "acebrew",
     name: "Dynace Ace Brew",
     price: 24.90,
-    category: "minceur",
+    category: "energie",
     image: "/images/acebrew.png",
     images: ["/images/acebrew.png", "/images/acebrew_2.png", "/images/acebrew_3.png"],
-    summary: "Café détox minceur enrichi en thé vert et garcinia cambogia.",
-    description: "Dynace Ace Brew réunit la richesse d'un café arabica de spécialité et des extraits de plantes reconnus pour stimuler la perte de poids (thé vert, extrait de Garcinia Cambogia). Il active la thermogenèse, favorise la détoxification de l'organisme et régule naturellement l'appétit.",
+    summary: "Café au NMN sans sucre ajouté — savourez votre café, libérez votre vitalité cellulaire.",
+    description: "Ace Brew réinvente l'expérience du café en y intégrant le NMN (Nicotinamide Mononucléotide), un précurseur du NAD+ reconnu pour son rôle dans la longévité cellulaire. Sans sucre ajouté, ce café d'exception soutient l'énergie cellulaire et l'endurance, aide à maintenir un vieillissement sain, soutient le bien-être immunitaire et favorise la clarté mentale. Idéal pour les amateurs de café soucieux de leur santé.",
     benefits: [
-      "Active la combustion des graisses",
-      "Détoxifie et draine le corps",
-      "Contrôle les fringales et l'appétit",
-      "Goût exquis de café premium"
+      "Enrichi au NMN, précurseur du NAD+ pour la longévité cellulaire",
+      "Zéro sucre ajouté — saveur authentique et pure",
+      "Soutient l'énergie cellulaire et la clarté mentale",
+      "Aide à maintenir un vieillissement sain et la vitalité"
     ],
-    usage: "Prendre une tasse le matin au réveil ou 30 minutes avant le sport."
+    usage: "Dissoudre un sachet dans une tasse d'eau chaude (150ml). À déguster le matin."
   },
   {
     id: "fitmax",
     name: "Dynace FitMax",
     price: 35.90,
     category: "minceur",
-    image: "", // Pas de visuel disponible pour le moment
-    images: [],
+    image: "/images/fitmax.png",
+    images: ["/images/fitmax.png"],
     summary: "Formule thermogénique avancée pour optimiser le contrôle du poids.",
-    description: "Dynace FitMax est un complexe minceur puissant conçu pour accélérer la perte de masse grasse. Il stimule le métabolisme de base, favorise la libération des lipides stockés et réduit l'absorption des glucides tout en fournissant une énergie propre.",
+    description: "Dynace FitMax est un complexe minceur puissant conçu pour accélérer la perte de masse grasse. Il stimule le métabolisme de base, favorise la libération des lipides stockés et réduit l'absorption des glucides tout en fournissant une énergie propre et soutenue. Une solution pensée pour ceux qui veulent retrouver confiance en leur silhouette sans compromettre leur vitalité.",
     benefits: [
-      "Accélère la perte de poids globale",
-      "Action coupe-faim et satiété de longue durée",
+      "Stimule le métabolisme et la combustion des graisses",
+      "Aide à contrôler l'appétit et les fringales",
       "Booste l'énergie et la concentration",
-      "Soutient la gestion saine du sucre dans le sang"
+      "Soutient la gestion saine du taux de sucre sanguin"
     ],
     usage: "Prendre un sachet dilué dans un verre d'eau 30 minutes avant le repas principal."
   },
   {
     id: "aceguard",
-    name: "Dynace AceGuard",
+    name: "Dynace Ace Guard",
     price: 38.90,
     category: "vitalite",
     image: "/images/aceguard.png",
     images: ["/images/aceguard.png", "/images/aceguard_2.png", "/images/aceguard_3.png"],
-    summary: "Complexe probiotique premium pour la santé digestive et intestinale.",
-    description: "Dynace AceGuard protège votre microbiote intestinal. En combinant des probiotiques de haute qualité, des prébiotiques et des antioxydants, il régule le transit, réduit l'inconfort intestinal, favorise un ventre plat et renforce l'immunité à sa source.",
+    summary: "Votre bouclier immunitaire quotidien — protection antioxydante et soutien à la longévité.",
+    description: "Ace Guard est votre allié quotidien pour un système immunitaire fort et un vieillissement sain. Sa formule unique associe puissants antioxydants et nutriments essentiels pour renforcer les défenses naturelles de l'organisme, offrir une protection cellulaire optimale et soutenir l'équilibre immunitaire. Recommandé pour les personnes en quête de soutien immunitaire, celles surveillant leur taux de sucre ou de cholestérol, et celles confrontées à des problèmes respiratoires.",
     benefits: [
-      "Équilibre et protège la flore intestinale",
-      "Réduit les ballonnements et gaz après les repas",
-      "Améliore l'immunité et la vitalité générale",
-      "Soutient une digestion fluide et légère"
+      "Renforce le soutien immunitaire quotidien",
+      "Puissante protection antioxydante et anti-âge",
+      "Aide à soutenir un vieillissement sain",
+      "Soutient l'équilibre de la santé respiratoire"
     ],
     usage: "Un sachet par jour dilué dans un verre d'eau tempérée le matin à jeun."
   },
@@ -111,15 +111,15 @@ const initialProducts = [
     category: "energie",
     image: "/images/tripleroot.png",
     images: ["/images/tripleroot.png", "/images/tripleroot_2.png", "/images/tripleroot_3.png"],
-    summary: "Café énergisant aux trois racines adaptogènes (Ginseng, Maca, Tongkat Ali).",
-    description: "Dynace Triple Root Coffee est une boisson tonifiante d'exception. En associant du café arabica de premier choix aux extraits concentrés de Ginseng, de Maca et de Tongkat Ali, il offre une stimulation physique et intellectuelle durable sans palpitations ni crash.",
+    summary: "Café vitalité pour hommes — endurance, résilience et clarté d'esprit au quotidien.",
+    description: "Triple Root Coffee est un café d'exception formulé spécialement pour soutenir la vitalité masculine au quotidien. Il soutient l'endurance et les performances physiques, améliore l'énergie et la concentration, favorise une circulation saine et la santé cardiaque, et renforce la résilience au stress et le repos. Idéal pour les hommes actifs, les sportifs et les professionnels exigeants.",
     benefits: [
-      "Énergie physique intense et clarté d'esprit",
-      "Lutte activement contre la fatigue chronique",
-      "Améliore la concentration et la mémoire",
-      "Soutien adaptogène antistress"
+      "Soutient l'endurance et les performances physiques",
+      "Améliore l'énergie et la concentration",
+      "Favorise une circulation saine et la santé cardiaque",
+      "Renforce la résilience au stress et favorise le repos"
     ],
-    usage: "Une tasse le matin pour démarrer la journée avec vigueur."
+    usage: "Dissoudre un sachet dans 150ml d'eau chaude. Une tasse le matin pour démarrer avec vigueur."
   },
   {
     id: "lyftmax",
@@ -128,15 +128,15 @@ const initialProducts = [
     category: "vitalite",
     image: "/images/lyftmax.png",
     images: ["/images/lyftmax.png", "/images/lyftmax_2.png", "/images/lyftmax_3.png"],
-    summary: "Boisson anti-âge et de soutien pour les performances cardiovasculaires.",
-    description: "Dynace LyftMax est une formule avancée pour le soutien cardiovasculaire, l'endurance et l'anti-âge. Enrichi en acides aminés essentiels (L-Arginine) et en antioxydants, il améliore la circulation sanguine, optimise l'oxygénation musculaire et favorise une récupération musculaire rapide.",
+    summary: "Le bien-être au féminin, chaque jour — équilibre hormonal, éclat et vitalité.",
+    description: "LyftMax est le supplément complet pour le bien-être féminin. Sa formule raffinée soutient l'équilibre hormonal et accompagne les changements physiologiques naturels, aide à maintenir l'énergie et la peau, soutient la santé osseuse et le confort lors de la ménopause. Pensé pour les femmes traversant des changements hormonaux, stressées ou fatiguées, et celles qui recherchent confiance en leur corps et leur peau.",
     benefits: [
-      "Soutient la santé du cœur et des artères",
-      "Améliore la performance physique et l'endurance",
-      "Favorise une récupération rapide après l'effort",
-      "Puissante protection anti-âge cellulaire"
+      "Soutient l'équilibre hormonal et le bien-être féminin",
+      "Aide à maintenir l'énergie et l'éclat de la peau",
+      "Soutient la santé osseuse et le confort articulaire",
+      "Favorise la sérénité lors des changements hormonaux"
     ],
-    usage: "Un sachet dilué dans 200ml d'eau avant l'entraînement ou en cours de journée."
+    usage: "Un sachet dilué dans 200ml d'eau fraîche par jour, de préférence le matin."
   },
   {
     id: "collagene",
@@ -145,13 +145,13 @@ const initialProducts = [
     category: "beaute",
     image: "/images/collagene.png",
     images: ["/images/collagene.png", "/images/collagene_2.png", "/images/collagene_3.png"],
-    summary: "Élixir de collagène marin hydrolysé pour une peau ferme et lumineuse.",
-    description: "Dynace Collagène nourrit votre éclat de l'intérieur. Cette boisson de beauté réunit du collagène marin de type I hautement bio-disponible, de l'acide hyaluronique et de la coenzyme Q10 pour repulper la peau, lisser les rides, fortifier les ongles et les cheveux, et soutenir les articulations.",
+    summary: "Élixir de beauté cellulaire — peau repulpée, cheveux renforcés, ongles solides.",
+    description: "Le Collagène Beauté Dynace est une boisson de soin intérieure alliant collagène hautement biodisponible, acide hyaluronique et coenzyme Q10 pour révéler votre éclat naturel. Il raffermit la peau et estompe les ridules, assure une hydratation profonde durable, renforce les cheveux et les ongles cassants, et soutient la souplesse articulaire. Le soin beauté premium qui se consomme de l'intérieur.",
     benefits: [
-      "Raffermit la peau et estompe les ridules",
-      "Hydratation profonde (acide hyaluronique)",
-      "Renforce les cheveux et les ongles cassants",
-      "Soutient la souplesse articulaire"
+      "Raffermit la peau et estompe visiblement les ridules",
+      "Hydratation profonde et durable (acide hyaluronique)",
+      "Renforce les cheveux et les ongles fragiles",
+      "Soutient la souplesse et le confort articulaire"
     ],
     usage: "Mélanger un sachet dans un verre d'eau fraîche le soir au coucher."
   },
@@ -162,21 +162,27 @@ const initialProducts = [
     category: "beaute",
     image: "/images/toothpaste.png",
     images: ["/images/toothpaste.png", "/images/toothpaste_2.png", "/images/toothpaste_3.png"],
-    summary: "Duo de dentifrices Jour & Nuit pour une protection bucco-dentaire 24h.",
-    description: "Le Dynace Duo Toothpaste réinvente l'hygiène bucco-dentaire. Le dentifrice 'MorningShield' protège contre les bactéries diurnes, blanchit et rafraîchit l'haleine. Le dentifrice 'NightRestore' répare l'émail, apaise les gencives sensibles et assainit la bouche pendant votre sommeil.",
+    summary: "Soin bucco-dentaire Jour & Nuit — MorningShield au Thé Blanc & NightRestore aux Herbes.",
+    description: "Le Dynace Duo Toothpaste réinvente l'hygiène bucco-dentaire avec une approche Jour & Nuit. MorningShield (Thé Blanc & Jasmin) assure une haleine fraîche et protège l'émail en journée. NightRestore (Herbes & Menthe) répare, apaise les gencives et assainit la bouche pendant le sommeil. Ensemble, ils assurent une protection bucco-dentaire complète 24h/24.",
     benefits: [
-      "Protection bucco-dentaire continue 24h/24",
-      "Effet blancheur doux et élimination du tartre",
-      "Renforce l'émail et protège les gencives",
-      "Haleine ultra-fraîche au réveil"
+      "Aide à maintenir une haleine fraîche durablement",
+      "Favorise une hygiène buccale quotidienne complète",
+      "Soutient le confort et la santé des gencives",
+      "Routine double Matin & Soir pour une protection 24h"
     ],
-    usage: "Utiliser MorningShield (tube vert) le matin et NightRestore (tube bleu) le soir."
+    usage: "Utiliser MorningShield (tube Thé Blanc) le matin et NightRestore (tube Menthe) le soir."
   }
 ];
 
 export const seedProducts = async () => {
   try {
-    // Vider la collection products dans MongoDB
+    const count = await Product.countDocuments();
+    if (count > 0) {
+      console.log('Catalogue déjà présent dans MongoDB, on ignore le seeding initial.');
+      return;
+    }
+
+    // Vider la collection products dans MongoDB au cas où
     await Product.deleteMany({});
     console.log('Remplissage de la table products (MongoDB) avec le catalogue Dynace Global...');
     
@@ -195,7 +201,7 @@ export const seedProducts = async () => {
     }));
     
     await Product.insertMany(productsToSeed);
-    console.log('Catalogue Dynace Global inséré dans MongoDB avec succès.');
+    console.log('✅ Catalogue Dynace Global inséré dans MongoDB avec succès.');
 
     // Seeding de l'utilisateur Administrateur par défaut
     const adminEmail = 'admin@dynace.com';
@@ -214,6 +220,37 @@ export const seedProducts = async () => {
       });
       await newAdmin.save();
       console.log('✅ Utilisateur Administrateur par défaut créé : admin@dynace.com / admin12345');
+    }
+
+    // Seeding de quelques avis initiaux
+    const admin = await User.findOne({ email: adminEmail });
+    if (admin) {
+      await Review.deleteMany({});
+      const initialReviews = [
+        {
+          product_id: "rocenta",
+          user_id: admin._id,
+          name: "Sophie M.",
+          rating: 5,
+          comment: "Le Dynace Rocenta a complètement transformé ma forme physique. Je ressens une vitalité incroyable au quotidien et ma peau est devenue éclatante et bien plus ferme !"
+        },
+        {
+          product_id: "tripleroot",
+          user_id: admin._id,
+          name: "Lucas R.",
+          rating: 5,
+          comment: "Le Triple Root Coffee est exceptionnel. Il me donne un boost d'énergie immédiat sans les palpitations ni les crashs de l'après-midi du café classique. Le goût est délicieux !"
+        },
+        {
+          product_id: "aceguard",
+          user_id: admin._id,
+          name: "Clara D.",
+          rating: 5,
+          comment: "AceGuard a été un miracle pour ma digestion. Plus de ballonnements ni de lourdeurs après les repas, mon ventre est redevenu plat et ma flore intestinale est en pleine santé."
+        }
+      ];
+      await Review.insertMany(initialReviews);
+      console.log('✅ Avis initiaux insérés dans MongoDB avec succès.');
     }
   } catch (err) {
     console.error('Erreur lors du seeding de la base de données MongoDB :', err.message);
