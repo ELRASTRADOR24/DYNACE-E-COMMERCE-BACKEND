@@ -49,58 +49,211 @@ export const sendOrderNotificationEmail = async ({ orderId, user, items, totalAm
     return true;
   }
 
-  const itemsHtml = items.map(item => 
-    `<li>${item.quantity}x ${item.name} - ${(item.price * item.quantity).toFixed(2)} €</li>`
-  ).join('');
+  const itemsHtml = items.map(item => `
+    <tr>
+      <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; font-weight: 500;">${item.name}</td>
+      <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b; text-align: center;">x${item.quantity}</td>
+      <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; text-align: right; font-weight: 600;">${(item.price * item.quantity).toFixed(2)} €</td>
+    </tr>
+  `).join('');
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER, // Send to the admin
-    subject: `Nouvelle Commande Reçue ! (${totalAmount.toFixed(2)} €) - Réf: ${orderId}`,
+    from: `"Dynace Global" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    subject: `🛒 Nouvelle Commande #${orderId} — ${totalAmount.toFixed(2)} € — ${user.firstName} ${user.lastName}`,
     html: `
-      <h2>Félicitations, vous avez reçu une nouvelle commande !</h2>
-      <p><strong>ID Commande :</strong> ${orderId}</p>
-      <p><strong>Total Payé :</strong> ${totalAmount.toFixed(2)} €</p>
-      
-      <h3>Client :</h3>
-      <p>
-        Nom : ${user.firstName} ${user.lastName}<br />
-        Email : ${user.email}
-      </p>
-
-      <h3>Adresse de Livraison :</h3>
-      <p>
-        ${shippingAddress.fullName}<br />
-        ${shippingAddress.address}<br />
-        ${shippingAddress.postalCode} ${shippingAddress.city}<br />
-        ${shippingAddress.country}<br />
-        <strong>Téléphone :</strong> ${shippingAddress.phone || 'Non renseigné'}
-      </p>
-
-      <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #334155;">📦 Étiquette Colissimo</h3>
-        <p style="margin-bottom: 5px;">Voici les informations prêtes à être copiées-collées pour créer votre étiquette d'expédition :</p>
-        <pre style="background: #fff; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: monospace;">
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+          .email-wrapper { max-width: 650px; margin: 30px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+          
+          .header { background: linear-gradient(135deg, #153A89 0%, #0f2b66 100%); padding: 35px 30px; }
+          .header h1 { color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 5px 0; letter-spacing: 1.5px; text-transform: uppercase; }
+          .header p { color: #94b8ff; font-size: 14px; margin: 0; font-weight: 400; }
+          
+          .alert-bar { background-color: #10b981; color: #ffffff; text-align: center; padding: 14px 20px; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+          
+          .content { padding: 35px 30px; }
+          .section-title { font-size: 13px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+          
+          .info-grid { display: table; width: 100%; margin-bottom: 25px; }
+          .info-col { display: table-cell; vertical-align: top; width: 50%; padding-right: 15px; }
+          .info-col:last-child { padding-right: 0; padding-left: 15px; }
+          .info-label { font-size: 12px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px; }
+          .info-value { font-size: 15px; color: #1e293b; font-weight: 500; line-height: 1.5; margin-bottom: 12px; }
+          
+          .order-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .order-table th { font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; text-align: left; padding: 10px 15px; background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px; }
+          
+          .total-row { text-align: right; padding: 8px 15px; font-size: 14px; color: #64748b; }
+          .grand-total { font-size: 20px; font-weight: 800; color: #153A89; padding-top: 12px; border-top: 2px solid #e2e8f0; }
+          
+          /* ===== FICHE D'EXPÉDITION IMPRIMABLE ===== */
+          .shipping-label { border: 3px dashed #153A89; border-radius: 12px; padding: 25px; margin: 30px 0; background-color: #fafbff; page-break-inside: avoid; }
+          .shipping-label-header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #153A89; }
+          .shipping-label-header h3 { font-size: 18px; color: #153A89; margin: 0 0 5px 0; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+          .shipping-label-header p { font-size: 12px; color: #64748b; margin: 0; }
+          
+          .label-grid { display: table; width: 100%; }
+          .label-from, .label-to { display: table-cell; vertical-align: top; width: 50%; }
+          .label-from { padding-right: 15px; }
+          .label-to { padding-left: 15px; border-left: 2px solid #e2e8f0; }
+          .label-section-title { font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+          .label-name { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+          .label-address { font-size: 14px; color: #475569; line-height: 1.6; }
+          
+          .label-ref { text-align: center; margin-top: 18px; padding-top: 15px; border-top: 2px solid #e2e8f0; }
+          .label-ref span { font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; color: #153A89; background-color: #eef2ff; padding: 6px 16px; border-radius: 6px; letter-spacing: 2px; }
+          
+          .print-btn { display: block; text-align: center; margin: 0 auto; background-color: #153A89; color: #ffffff; padding: 14px 30px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+          .colissimo-btn { display: block; text-align: center; margin: 10px auto 0; background-color: #00468b; color: #ffffff; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+          
+          .footer { text-align: center; padding: 25px 30px; background-color: #f1f5f9; font-size: 12px; color: #94a3b8; }
+          
+          @media print {
+            body { background: white !important; }
+            .email-wrapper { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; }
+            .header, .alert-bar, .content, .footer { display: none !important; }
+            .shipping-label { border: 3px solid #000 !important; margin: 0 !important; display: block !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          
+          <!-- Header -->
+          <div class="header">
+            <h1>DYNACE GLOBAL</h1>
+            <p>Tableau de bord • Notification de commande</p>
+          </div>
+          
+          <!-- Alert Bar -->
+          <div class="alert-bar">
+            ✅ NOUVELLE COMMANDE REÇUE — ACTION REQUISE
+          </div>
+          
+          <!-- Content -->
+          <div class="content">
+            
+            <!-- Order & Customer Summary -->
+            <div class="section-title">Résumé de la commande</div>
+            <div class="info-grid">
+              <div class="info-col">
+                <div class="info-label">N° Commande</div>
+                <div class="info-value" style="font-family: 'Courier New', monospace; font-size: 17px; color: #153A89; font-weight: 700;">${orderId}</div>
+                
+                <div class="info-label">Date</div>
+                <div class="info-value">${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                
+                <div class="info-label">Montant total payé</div>
+                <div class="info-value" style="font-size: 22px; font-weight: 800; color: #10b981;">${totalAmount.toFixed(2)} €</div>
+              </div>
+              <div class="info-col">
+                <div class="info-label">Client</div>
+                <div class="info-value" style="font-weight: 700;">${user.firstName} ${user.lastName}</div>
+                
+                <div class="info-label">Email</div>
+                <div class="info-value"><a href="mailto:${user.email}" style="color: #153A89; text-decoration: none;">${user.email}</a></div>
+                
+                <div class="info-label">Téléphone</div>
+                <div class="info-value">${shippingAddress.phone || 'Non renseigné'}</div>
+              </div>
+            </div>
+            
+            <!-- Delivery Address -->
+            <div class="section-title">Adresse de livraison</div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 25px;">
+              <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 5px;">${shippingAddress.fullName}</div>
+              <div style="font-size: 14px; color: #475569; line-height: 1.6;">
+                ${shippingAddress.address}<br>
+                ${shippingAddress.postalCode} ${shippingAddress.city}<br>
+                ${shippingAddress.country || 'France'}
+              </div>
+            </div>
+            
+            <!-- Products -->
+            <div class="section-title">Produits à expédier</div>
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th style="text-align: center;">Qté</th>
+                  <th style="text-align: right;">Sous-total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+            </table>
+            <div class="total-row">Frais de port : ${totalAmount - items.reduce((s, i) => s + i.price * i.quantity, 0) <= 0 ? 'Offerts' : (totalAmount - items.reduce((s, i) => s + i.price * i.quantity, 0)).toFixed(2) + ' €'}</div>
+            <div class="grand-total" style="text-align: right; padding: 12px 15px;">Total : ${totalAmount.toFixed(2)} €</div>
+            
+            <!-- ===== FICHE D'EXPÉDITION IMPRIMABLE ===== -->
+            <div class="shipping-label">
+              <div class="shipping-label-header">
+                <h3>📦 Fiche d'Expédition</h3>
+                <p>Imprimez cette fiche et collez-la sur le colis, ou recopiez les informations sur Colissimo en ligne</p>
+              </div>
+              
+              <div class="label-grid">
+                <div class="label-from">
+                  <div class="label-section-title">Expéditeur</div>
+                  <div class="label-name">DYNACE GLOBAL</div>
+                  <div class="label-address">
+                    (Votre adresse d'expédition)<br>
+                    France
+                  </div>
+                </div>
+                <div class="label-to">
+                  <div class="label-section-title">Destinataire</div>
+                  <div class="label-name">${shippingAddress.fullName}</div>
+                  <div class="label-address">
+                    ${shippingAddress.address}<br>
+                    ${shippingAddress.postalCode} ${shippingAddress.city}<br>
+                    ${shippingAddress.country || 'France'}<br>
+                    ${shippingAddress.phone ? 'Tél: ' + shippingAddress.phone : ''}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="label-ref">
+                <span>REF: ${orderId}</span>
+              </div>
+            </div>
+            
+            <!-- Colissimo link -->
+            <a href="https://www.laposte.fr/colissimo-en-ligne/votre-colis" target="_blank" class="colissimo-btn">
+              🚚 Créer l'étiquette sur Colissimo en ligne
+            </a>
+            
+            <!-- Copy-paste block for Colissimo -->
+            <div style="margin-top: 25px;">
+              <div class="section-title">Informations à copier-coller pour Colissimo</div>
+              <pre style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; color: #334155; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word;">
 Prénom Nom : ${shippingAddress.fullName}
-Adresse : ${shippingAddress.address}
-Code Postal : ${shippingAddress.postalCode}
-Ville : ${shippingAddress.city}
-Pays : ${shippingAddress.country}
-Téléphone : ${shippingAddress.phone || ''}
-Email : ${user.email}
-        </pre>
-        <a href="https://www.laposte.fr/colissimo-en-ligne/votre-colis" target="_blank" style="display: inline-block; background-color: #00468b; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;">
-          Aller sur Colissimo En Ligne
-        </a>
-      </div>
-
-      <h3>Produits à Expédier :</h3>
-      <ul>
-        ${itemsHtml}
-      </ul>
-
-      <br />
-      <p>Veuillez préparer le colis et informer le client via le Dashboard dès qu'il est expédié.</p>
+Adresse    : ${shippingAddress.address}
+Code Postal: ${shippingAddress.postalCode}
+Ville      : ${shippingAddress.city}
+Pays       : ${shippingAddress.country || 'France'}
+Téléphone  : ${shippingAddress.phone || 'N/A'}
+Email      : ${user.email}
+              </pre>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div class="footer">
+            <p>📩 Cet e-mail a été envoyé automatiquement par le système Dynace Global.<br>
+            Veuillez mettre à jour le statut de la commande dans le <a href="https://dynace-shop.vercel.app/admin" style="color: #153A89; text-decoration: none; font-weight: 600;">Tableau de bord Admin</a> une fois le colis expédié.</p>
+          </div>
+          
+        </div>
+      </body>
+      </html>
     `
   };
 
