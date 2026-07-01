@@ -11,7 +11,7 @@ import path from 'path';
 import nodemailer from 'nodemailer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { sendContactEmail, sendOrderNotificationEmail, sendCustomerOrderConfirmationEmail } from './utils/email.js';
+import { sendContactEmail, sendOrderNotificationEmail, sendCustomerOrderConfirmationEmail, sendShippingConfirmationEmail } from './utils/email.js';
 
 // Charge les variables d'environnement depuis le fichier .env
 try {
@@ -450,6 +450,7 @@ app.get('/api/orders/user', authenticateToken, async (req, res) => {
       shipping: row.shipping,
       total: row.total,
       status: row.status,
+      trackingNumber: row.tracking_number || '',
       createdAt: row.created_at
     }));
     res.json(ordersList);
@@ -486,7 +487,8 @@ app.get('/api/orders/track/:orderNumber', async (req, res) => {
       last_name: order.last_name,
       address: order.address,
       postal_code: order.postal_code,
-      city: order.city
+      city: order.city,
+      tracking_number: order.tracking_number || ''
     });
   } catch (err) {
     console.error('Erreur suivi commande :', err.message);
@@ -704,15 +706,27 @@ app.get('/api/admin/orders', authenticateToken, verifyAdmin, async (req, res) =>
 
 // Update order status
 app.put('/api/admin/orders/:id/status', authenticateToken, verifyAdmin, async (req, res) => {
-  const { status } = req.body;
+  const { status, trackingNumber } = req.body;
   if (!status) {
     return res.status(400).json({ error: 'Statut manquant.' });
   }
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const updateData = { status };
+    if (trackingNumber !== undefined) {
+      updateData.tracking_number = trackingNumber;
+    }
+
+    const order = await Order.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!order) {
       return res.status(404).json({ error: 'Commande non trouvée.' });
     }
+
+    // Si le statut passe à "Expédié", envoyer l'e-mail d'expédition au client
+    if (status === 'Expédié') {
+      const trackingNo = trackingNumber || order.tracking_number || '';
+      await sendShippingConfirmationEmail(order, trackingNo);
+    }
+
     res.json(order);
   } catch (err) {
     console.error('Erreur mise à jour statut commande :', err.message);

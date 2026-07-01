@@ -59,7 +59,8 @@ const orderSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true },
   shipping: { type: Number, required: true },
   total: { type: Number, required: true },
-  status: { type: String, default: 'Payé' }, // 'Payé', 'En préparation', 'Expédié'
+  status: { type: String, default: 'Payé' }, // 'Payé', 'En préparation', 'Expédié', 'Livré'
+  tracking_number: { type: String, default: '' },
   created_at: { type: Date, default: Date.now }
 });
 
