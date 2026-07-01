@@ -136,12 +136,14 @@ export const sendCustomerOrderConfirmationEmail = async (order) => {
       <html lang="fr">
       <head>
         <meta charset="UTF-8">
+        <meta name="color-scheme" content="light dark">
+        <meta name="supported-color-schemes" content="light dark">
         <style>
           body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
           .email-wrapper { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
           .header { background-color: #153A89; padding: 40px 20px; text-align: center; }
-          .header img { height: 45px; margin-bottom: 20px; }
-          .header h1 { color: #ffffff; font-size: 24px; font-weight: 600; margin: 0; letter-spacing: 0.5px; }
+          .header h2 { color: #ffffff; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+          .header h1 { color: #e2e8f0; font-size: 18px; font-weight: 400; margin: 0; }
           .content { padding: 40px 30px; color: #334155; }
           .greeting { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #1e293b; }
           .intro-text { font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 30px; }
@@ -166,7 +168,7 @@ export const sendCustomerOrderConfirmationEmail = async (order) => {
           .shipping-address { font-size: 15px; line-height: 1.5; color: #475569; }
           
           .cta-container { text-align: center; margin: 40px 0 20px; }
-          .cta-button { display: inline-block; background-color: #153A89; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 15px 35px; border-radius: 30px; letter-spacing: 0.5px; }
+          .cta-button { display: inline-block; background-color: #00ACD8; color: #ffffff !important; font-size: 16px; font-weight: 700; text-decoration: none; padding: 15px 35px; border-radius: 30px; letter-spacing: 0.5px; border: 2px solid #00ACD8; }
           
           .footer { text-align: center; padding: 30px; background-color: #f1f5f9; font-size: 13px; color: #94a3b8; line-height: 1.5; }
           .footer a { color: #153A89; text-decoration: none; }
@@ -177,8 +179,8 @@ export const sendCustomerOrderConfirmationEmail = async (order) => {
           
           <!-- Header -->
           <div class="header">
-            <img src="https://dynace-shop.vercel.app/images/logo.svg" alt="Dynace Global Logo" />
-            <h1>Merci d'avoir acheté chez Dynace Global</h1>
+            <h2>DYNACE GLOBAL</h2>
+            <h1>Merci d'avoir acheté chez nous</h1>
           </div>
           
           <!-- Content -->
