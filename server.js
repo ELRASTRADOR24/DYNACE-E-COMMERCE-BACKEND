@@ -361,6 +361,44 @@ app.post('/api/contact', async (req, res) => {
     res.status(500).json({ error: 'Erreur lors de l\'envoi du message.' });
   }
 });
+
+app.get('/api/test-email-error', async (req, res) => {
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    return res.status(400).json({ 
+      error: "Missing EMAIL_USER or EMAIL_PASS in process.env", 
+      envKeys: Object.keys(process.env).filter(k => k.includes('EMAIL') || k.includes('SMTP') || k.includes('PASS'))
+    });
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass }
+  });
+
+  const mailOptions = {
+    from: user,
+    to: user,
+    subject: 'Dynace Test Route Email',
+    text: 'Test message.'
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    res.json({ success: true, message: "Email sent successfully", messageId: info.messageId, emailUser: user });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      response: err.response,
+      emailUser: user
+    });
+  }
+});
+
 // --- NEWSLETTER ROUTE ---
 
 app.post('/api/newsletter/subscribe', async (req, res) => {
